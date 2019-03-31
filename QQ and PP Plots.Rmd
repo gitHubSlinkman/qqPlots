@@ -1,0 +1,168 @@
+---
+title: "10-QQ and PP Plots with R"
+author: "by Craig W. Slinkman"
+date: "March 30, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
+
+```
+
+```{r Load_library}
+library(tidyverse)
+library(cowplot)
+library(alr4)
+```
+
+
+
+# QQ and PP Plots with R
+
+This is my implementation of the University of Iowa's [STAT:4580 tutorial](https://homepage.divms.uiowa.edu/~luke/classes/STAT4580/qqpp.html#qq-plots) called **QQ and PP Plots**.
+
+## QQ Plots
+
+### QQ Plot Basics
+
+One way to assess how well a particular theoretical model describes a data distribution is to plot data quantiles against theoretical quantiles.
+
+Base graphics provides qqnorm, lattice has qqmath, and ggplot2 has geom_qq.
+
+The default theoretical distribution used in these is a standard normal, but, except for qqnorm, these allow you to specify an alternative.
+
+For a large sample from the theoretical distribution the plot should be a straight line through the origin with slope 1:
+
+```{r Theoretical_qqPlots}
+#
+require(ggplot2)
+#
+n <- 10000
+ggplot() + geom_qq(aes(sample = rnorm(n)))
+#
+```
+
+If the plot is a straight line with a different slope or intercept, then the data distribution corresponds to a location-scale transformation of the theoretical distribution.
+
+The slope is the scale and the intercept is the location:
+
+```{r Location_and_scale}
+#
+ggplot() +
+    geom_qq(aes(sample = rnorm(n, 10, 4))) +
+    geom_abline(intercept = 10, slope = 4,
+                color = "red", size = 1.5, alpha = 0.8)
+#
+```
+
+The QQ plot can be constructed directly as a scatterplot of the sorted sample x(i) for i=1,.,n against quantiles for
+
+$$p_i = \frac{i}{n} - \frac{1}{2 n}$$
+For example, in **R** we have
+
+```{r Draw_qq_plot_manually}
+#
+p <- (1 : n) / n - 0.5 / n
+
+y <- rnorm(n, 10, 4)
+ggplot() + geom_point(aes(x = qnorm(p), y = sort(y)))
+#
+```
+
+
+
+### Some Examples
+
+The histograms and density estimates for the duration variable in the geyser data set showed that the distribution is far from a normal distribution, and the normal QQ plot shows this as well:
+
+```{r Oldfaaithful}
+#
+library(alr4)
+
+head(oldfaith)
+
+ggplot(oldfaith) +
+    geom_qq(aes(sample = Duration))
+#
+```
+
+Except for rounding the parent heights in the Galton data seemed not too far from normally distributed:
+
+```{r Galton}
+#
+library(HistData)
+#
+data(Galton)
+#
+ggplot(Galton) + geom_qq(aes(sample = parent))
+```
+
+Rounding has the follwong effects on qq-plots:
+
+* Rounding interferes more with this visualization than with a histogram or a density plot.
+
+* Rounding is more visible with this visualization than with a histogram or a density plot.
+
+Another Gatlton dataset available in the UsingR package with less rounding is father.son:
+
+```{r Father_and_son}
+#
+library(UsingR)
+#
+ggplot(father.son) + geom_qq(aes(sample = fheight))
+#
+```
+
+The middle seems to be fairly straight, but the ends are somewhat wiggly.
+
+How can you calibrate your judgment?
+
+### Calibrating the Variability
+
+One approach is to use simulation, sometimes called a graphical bootstrap.
+
+The nboot function will simulate R samples from a normal distribution that match a variable x on sample size, sample mean, and sample SD.
+
+The result is returned in a data frame suitable for plotting:
+
+```{r Calibrating_the_variability}
+#
+nsim <- function(n, m = 0, s = 1) {
+    z <- rnorm(n)
+    m + s * ((z - mean(z)) / sd(z))
+}
+#
+#
+nboot <- function(x, R) {
+    n <- length(x)
+    m <- mean(x)
+    s <- sd(x)
+    do.call(rbind,
+            lapply(1 : R,
+                   function(i) {
+                       xx <- sort(nsim(n, m, s))
+                       p <- seq_along(x) / n - 0.5 / n
+                       data.frame(x = xx, p = p, sim = i)
+    }))
+}
+#
+```
+
+Plotting these as lines shows the variability in shapes we can expect when sampling from the theoretical normal distribution:
+
+```{r Assessing_variability}
+#
+gb <- nboot(father.son$fheight, 50)
+#
+
+```
+
+We can then insert this simulation behind our data to help calibrate the visualization:
+
+```{r}
+#
+#
+```
+
