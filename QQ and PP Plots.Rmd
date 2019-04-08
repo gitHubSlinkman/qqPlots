@@ -29,7 +29,7 @@ This is my implementation of the University of Iowa's [STAT:4580 tutorial](https
 
 One way to assess how well a particular theoretical model describes a data distribution is to plot data quantiles against theoretical quantiles.
 
-Base graphics provides qqnorm, lattice has qqmath, and ggplot2 has geom_qq.
+Base graphics provides $qqnorm$, lattice has $qqmath$, and $ggplot2$ has $geom_qq$.
 
 The default theoretical distribution used in these is a standard normal, but, except for qqnorm, these allow you to specify an alternative.
 
@@ -64,8 +64,9 @@ For example, in **R** we have
 
 ```{r Draw_qq_plot_manually}
 #
+n <- 1000
 p <- (1 : n) / n - 0.5 / n
-
+#
 y <- rnorm(n, 10, 4)
 ggplot() + geom_point(aes(x = qnorm(p), y = sort(y)))
 #
@@ -154,7 +155,7 @@ Plotting these as lines shows the variability in shapes we can expect when sampl
 
 ```{r Assessing_variability}
 #
-gb <- nboot(father.son$fheight, 50)
+gb <- nboot(father.son$fheight, 100)
 #
 
 ```
@@ -163,6 +164,40 @@ We can then insert this simulation behind our data to help calibrate the visuali
 
 ```{r}
 #
+ggplot(father.son) +
+    geom_line(aes(x = qnorm(p), y = x, group = sim),
+              color = "gray", data = gb) +
+    geom_qq(aes(sample = fheight))
+#
+```
+### Scalability
+
+For large sample sizes overplotting will occur:
+
+```{r Assessing_scalability}
+#
+ggplot(diamonds) + geom_qq(aes(sample = price))
+#
+
+```
+
+This can be alleviated by using block  quantiles:
+
+```{r use_bock_quantiles}
+#
+nq <- 100
+p <- (1 : nq) / nq - 0.5 / nq
+ggplot() + geom_point(aes(x = qnorm(p), y = quantile(diamonds$price, p)))
+#
+
+```
+
+A more reasonable model might be an exponential distribution:
+
+```{r expontetial_qq_plot}
+#
+ggplot() + geom_point(aes(x = qexp(p), 
+                          y = quantile(diamonds$price, p)))
 #
 ```
 
